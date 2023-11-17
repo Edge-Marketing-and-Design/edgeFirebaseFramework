@@ -23,12 +23,12 @@ const updateUser = async (event) => {
     if (state.userError.message === 'Firebase: Error (auth/email-already-in-use).') {
       state.userError = { success: false, message: 'Email already in use.' }
     }
-    if (state.userError.message === 'Error (auth/requires-recent-login).') {
+    if (state.userError.message === 'Firebase: Error (auth/requires-recent-login).') {
       state.userError = { success: false, message: 'Please log out and log back in to change your email.' }
     }
     state.userError = { success: state.userError.success, message: state.userError.message.replace('Firebase: ', '').replace(' (auth/invalid-email)', '') }
     if (state.userError.success) {
-      state.userError = { success: true, message: 'Email successfully changed' }
+      state.userError = { success: true, message: 'A verification link has been sent to your new email address. Please click the link to complete the email change process.' }
     }
     edgeGlobal.edgeState.changeTracker = {}
     state.loaded = false

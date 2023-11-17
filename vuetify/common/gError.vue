@@ -51,6 +51,7 @@ const firebaseErrorMap = {
   'auth/expired-action-code': 'The action code has expired. Please request a new one.',
   'auth/cancelled-popup-request': 'The popup request was cancelled. Please try again.',
   'auth/internal-error': 'An internal error occurred. Please try again later.',
+  'auth/invalid-action-code': 'Your link has expired. Please cancel and try again.',
   // ... Add more error codes as needed
 }
 

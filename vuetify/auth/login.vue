@@ -1,12 +1,14 @@
 <script setup>
 import { computed, defineProps, inject, onMounted, reactive } from 'vue'
-
 const props = defineProps({
   providers: {
     type: Array,
     default: () => ['email', 'microsoft'],
   },
 })
+
+const route = useRoute()
+
 const edgeFirebase = inject('edgeFirebase')
 const edgeGlobal = inject('edgeGlobal')
 
@@ -24,6 +26,8 @@ const state = reactive({
   phoneCode: '',
   forgotPasswordDialog: false,
   passwordResetResult: { success: null, message: '' },
+  passwordResetSent: false,
+  passwordResetDialog: false,
 })
 
 const multipleProviders = computed(() => props.providers.length > 1)
@@ -45,10 +49,9 @@ const phoneLogin = async () => {
 }
 
 const submitForgotPassword = async () => {
-  console.log(login.email)
   const result = await edgeFirebase.sendPasswordReset(login.email)
   state.passwordResetResult = result
-  state.forgotPasswordDialog = false
+  state.passwordResetSent = true
 }
 
 const onSubmit = async () => {
@@ -59,15 +62,31 @@ const onSubmit = async () => {
     await sendPhoneCode()
   }
 }
-onMounted(() => {
+
+const resetPassword = async () => {
+  let result = null
+  if (route.query.mode === 'resetPassword') {
+    result = await edgeFirebase.passwordReset(login.password, route.query.oobCode)
+  }
+  if (route.query.mode !== 'resetPassword') {
+    result = await edgeFirebase.emailUpdate(route.query.oobCode)
+  }
+  state.passwordResetResult = result
+}
+
+onMounted(async () => {
   state.panel = props.providers[0]
+  if (route.query.oobCode) {
+    await edgeFirebase.logOut()
+    state.passwordResetDialog = true
+  }
 })
 </script>
 
 <template>
   <logging-in v-if="edgeFirebase.user.loggingIn !== false || edgeFirebase.user.loggedIn" />
 
-  <v-card v-else flat class="mx-auto px-6 py-8" title="Login" max-width="344">
+  <v-card v-else flat class="mx-auto px-0 py-8" title="Login" max-width="344">
     <v-form
       v-model="state.form"
       @submit.prevent="onSubmit"
@@ -160,9 +179,107 @@ onMounted(() => {
       Sign up here.
     </v-btn>
     <v-dialog
+      v-model="state.passwordResetDialog"
+      persistent
+      max-width="400"
+      transition="fade-transition"
+    >
+      <v-card>
+        <v-form
+          v-model="state.form2"
+          validate-on="submit"
+          @submit.prevent="resetPassword"
+        >
+          <v-toolbar flat>
+            <v-icon class="mx-4">
+              mdi-lock-reset
+            </v-icon>
+            <span v-if="route.query.mode === 'resetPassword'">
+              Reset Password
+
+            </span>
+            <span v-else>
+              Update Email Address
+            </span>
+            <v-spacer />
+
+            <v-btn
+              icon
+              @click="state.passwordResetDialog = false"
+            >
+              <v-icon> mdi-close</v-icon>
+            </v-btn>
+          </v-toolbar>
+          <v-card-text>
+            <p v-if="route.query.mode === 'resetPassword'" class="mb-2">
+              Enter your new password below and click "Reset Password".
+            </p>
+            <p v-else class="mb-2">
+              To update your email address, click "Update Email Address".
+            </p>
+            <p class="mb-2">
+              This will change your email address to the address that received the email with the link you clicked on to get here.
+            </p>
+            <v-text-field
+              v-if="route.query.mode === 'resetPassword'"
+              v-model="login.password"
+              :rules="[edgeGlobal.edgeRules.required]"
+              :type="state.passwordShow ? 'text' : 'password'"
+              label="Password"
+              placeholder="Enter your password"
+              variant="underlined"
+              :append-inner-icon="state.passwordShow ? 'mdi-eye' : 'mdi-eye-off'"
+              @click:append-inner="state.passwordShow = !state.passwordShow"
+            />
+            <g-error v-if="state.passwordResetResult.success === false" :error="state.passwordResetResult.message" />
+            <v-alert v-if="state.passwordResetResult.success === true" color="success" class="mt-0 mb-3 text-caption" density="compact" variant="tonal" border="start">
+              <span v-if="route.query.mode === 'resetPassword'">
+                Your password has been reset. Close this dialog and log in with your new password.
+              </span>
+              <span v-else>
+                Your email address has been updated. Close this dialog and log in with your updated address.
+              </span>
+            </v-alert>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn
+              v-if="state.passwordResetResult.success === true"
+              color="success" variant="text"
+              @click="state.passwordResetDialog = false"
+            >
+              Close
+            </v-btn>
+            <v-btn
+              v-else
+              color="blue-darken-1"
+              variant="text"
+              @click="state.passwordResetDialog = false"
+            >
+              Cancel
+            </v-btn>
+            <v-btn
+              v-if="state.passwordResetResult.success !== true"
+              type="submit"
+              color="error"
+              variant="text"
+            >
+              <span v-if="route.query.mode === 'resetPassword'">
+                Reset Password
+              </span>
+              <span v-else>
+                Update Email Address
+              </span>
+            </v-btn>
+          </v-card-actions>
+        </v-form>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog
       v-model="state.forgotPasswordDialog"
       persistent
-      max-width="600"
+      max-width="400"
       transition="fade-transition"
     >
       <v-card>
@@ -189,7 +306,6 @@ onMounted(() => {
             <p class="mb-2">
               If you forgot your password, please enter your email address below and click "Send Password Reset".
             </p>
-            <p>If you entered the correct email, you will receive an email with a link to reset your password.</p>
             <v-text-field
               v-model="login.email"
               class="mt-4"
@@ -197,11 +313,21 @@ onMounted(() => {
               label="Email"
               variant="underlined"
             />
-            <g-error v-if="state.passwordResetResult.success === false" :error="state.passwordResetResult.message" />
+            <v-alert v-if="state.passwordResetSent" color="success" class="mt-0 mb-3 text-caption" density="compact" variant="tonal" border="start">
+              If you entered the correct email address, a password reset email has been sent to your email address. Please check your email and click the link to reset your password.
+            </v-alert>
           </v-card-text>
           <v-card-actions>
             <v-spacer />
             <v-btn
+              v-if="state.passwordResetSent === true"
+              variant="text"
+              @click="state.forgotPasswordDialog = false"
+            >
+              Close
+            </v-btn>
+            <v-btn
+              v-else
               color="blue-darken-1"
               variant="text"
               @click="state.forgotPasswordDialog = false"
@@ -209,6 +335,7 @@ onMounted(() => {
               Cancel
             </v-btn>
             <v-btn
+              v-if="state.passwordResetSent === false"
               type="submit"
               color="error"
               variant="text"
