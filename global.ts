@@ -46,7 +46,6 @@ export const getOrganizations = async (edgeFirebase: any) => {
     for (const role of edgeFirebase.user.roles) {
       const segments = role.collectionPath.split('-')
       if (segments[0] === 'organizations' && segments.length === 2) {
-        // TODO:  NEED TO MAKE startDocumentSnapshot acctually await
         await edgeFirebase.startDocumentSnapshot('organizations', segments[1])
         const org = await edgeFirebase.getDocData('organizations', segments[1])
         orgs.push(org)

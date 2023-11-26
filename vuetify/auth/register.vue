@@ -48,6 +48,7 @@ const edgeFirebase = inject('edgeFirebase')
 const edgeGlobal = inject('edgeGlobal')
 
 const state = reactive({
+  registering: false,
   passwordVisible: false,
   passwordShow: false,
   terms: false,
@@ -73,6 +74,7 @@ const register = reactive({
 })
 
 const onSubmit = async (event) => {
+  state.registering = true
   const results = await event
   if (results.valid) {
     if (props.singleOrganization) {
@@ -103,11 +105,20 @@ const onSubmit = async (event) => {
       if (state.showRegistrationCode) {
         register.registrationCode = state.registrationCode
       }
+      console.log('registering')
       const result = await edgeFirebase.registerUser(register, state.provider)
       state.error.error = !result.success
-      state.error.message = result.message.code
+      if (result.message === 'Organization ID already exists.') {
+        let orgLabel = props.requestedOrgIdLabel
+        if (!orgLabel) {
+          orgLabel = props.title
+        }
+        result.message = `${orgLabel} already exists. Please choose another.`
+      }
+      state.error.message = result.message.code ? result.message.code : result.message
     }
   }
+  state.registering = false
 }
 onMounted(() => {
   state.provider = props.providers[0]
@@ -300,7 +311,7 @@ function validateInput(event) {
       <v-card-actions>
         <v-spacer />
 
-        <v-btn color="success" type="submit">
+        <v-btn color="success" :loading="state.registering" type="submit">
           Submit
         </v-btn>
       </v-card-actions>
