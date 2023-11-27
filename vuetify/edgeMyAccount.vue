@@ -4,6 +4,8 @@ import { computed, inject, nextTick, onBeforeMount, reactive, watch } from 'vue'
 const edgeFirebase = inject('edgeFirebase')
 const edgeGlobal = inject('edgeGlobal')
 
+const router = useRouter()
+
 const state = reactive({
   loading: false,
   username: '',
