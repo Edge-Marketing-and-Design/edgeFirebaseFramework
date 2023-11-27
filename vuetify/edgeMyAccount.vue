@@ -5,6 +5,7 @@ const edgeFirebase = inject('edgeFirebase')
 const edgeGlobal = inject('edgeGlobal')
 
 const state = reactive({
+  loading: false,
   username: '',
   newPassword: '',
   oldPassword: '',
@@ -15,6 +16,8 @@ const state = reactive({
   passwordShow: false,
   passwordError: { success: true, message: '' },
   userError: { success: true, message: '' },
+  showDeleteAccount: false,
+  deleteForm: false,
 })
 const updateUser = async (event) => {
   const results = await event
@@ -54,6 +57,15 @@ const updatePassword = async (event) => {
     state.loaded = false
     await nextTick()
     state.loaded = true
+  }
+}
+const deleteAccount = async (event) => {
+  const results = await event
+  if (results.valid) {
+    state.loading = true
+    await edgeFirebase.runFunction('edgeFirebase-deleteSelf', { uid: edgeFirebase.user.uid })
+    await edgeFirebase.logOut()
+    router.push('/app/login')
   }
 }
 // const onSubmit = async (event) => {
@@ -192,6 +204,51 @@ watch(currentOrgName, async () => {
           Notice: You're signed in with a third-party provider. To update your login information, please visit your provider's account settings. Changes cannot be made directly within this app.
         </v-alert>
       </template>
+      <van-divider class="my-2">
+        <h4>
+          Delete Account
+        </h4>
+      </van-divider>
+      <v-divider class="my-4" />
+      <v-form
+        v-model="state.deleteForm"
+        validate-on="submit"
+        @submit.prevent="deleteAccount"
+      >
+        <v-btn v-if="!state.showDeleteAccount" variant="outlined" block @click="state.showDeleteAccount = true">
+          <v-icon class="mr-2">
+            mdi-delete
+          </v-icon>
+          Delete Account
+        </v-btn>
+        <v-alert v-else closable variant="tonal" border="start" type="warning" prominent @click:close="state.showDeleteAccount = false">
+          <template #title>
+            Are you sure?
+          </template>
+          <template #text>
+            <h3 class="mt-2">
+              <strong>Warning:</strong> Deleting your account will permanently remove all of your data from this app. This action cannot be undone.
+            </h3>
+            <g-input
+              field-type="boolean"
+              label="I understand the consequences of deleting my account."
+              :disable-tracking="true"
+              :rules="[edgeGlobal.edgeRules.required]"
+            />
+          </template>
+          <v-row class="mt-2" justify="end">
+            <v-col cols="auto">
+              <v-btn
+                color="error"
+                type="submit"
+                :loading="state.loading"
+              >
+                Delete Account
+              </v-btn>
+            </v-col>
+          </v-row>
+        </v-alert>
+      </v-form>
     </v-card-text>
   </v-card>
 </template>
