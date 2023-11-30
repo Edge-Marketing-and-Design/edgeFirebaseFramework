@@ -73,7 +73,7 @@ watch(edgeFirebase.user, async () => {
 </script>
 
 <template>
-  <v-container style="min-height: calc(100vh - 150px); display: flex; align-items: center; overflow: auto;" class="px-0" fluid>
+  <v-container style="min-height: calc(100vh - 150px); display: flex; align-items: center; overflow: hidden;" class="px-1" fluid>
     <v-row align="center" class="fill-height" justify="center">
       <v-col cols="12" class="center-align">
         <v-card
