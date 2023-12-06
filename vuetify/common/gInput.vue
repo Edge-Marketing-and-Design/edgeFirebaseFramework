@@ -1,5 +1,10 @@
 <script setup>
+// TODO: MAKE SURE ADD WAY TO EDIT THE FUNCTION AND UPDATE THE FUNCTION... ADD HELPERS TO THE SCHEMA PARAMS
+// TODO: FINISH EDIT FUNCTION, LOOK AT fieldInsertDialog
+
 import { computed, defineProps, inject, nextTick, onBeforeMount, onMounted, reactive, ref, watch } from 'vue'
+import functionChips from './gSubInput/gptFunctionChips.vue'
+
 const props = defineProps({
   disableTracking: {
     type: Boolean,
@@ -83,8 +88,33 @@ const props = defineProps({
     required: false,
     default: () => ({ variant: 'underlined' }),
   },
+  forFunctions: {
+    type: Boolean,
+    default: false,
+  },
 })
 const emit = defineEmits(['update:modelValue'])
+
+const generateShortId = () => {
+  return Math.random().toString(36).substr(2, 6)
+}
+
+const jsonSchemaStringFormats = [
+  '',
+  'date-time',
+  'date',
+  'time',
+  'email',
+  'hostname',
+  'ipv4',
+  'ipv6',
+  'uri',
+  'uri-reference',
+  'uri-template',
+  'json-pointer',
+  'relative-json-pointer',
+  'regex',
+]
 const edgeGlobal = inject('edgeGlobal')
 const edgeFirebase = inject('edgeFirebase')
 const state = reactive({
@@ -92,7 +122,7 @@ const state = reactive({
   afterMount: false,
   trackerKey: '',
   helper: false,
-  fieldsTypes: ['string', 'boolean', 'array', 'object', 'number'],
+  fieldsTypes: ['string', 'boolean', 'array', 'object', 'number', 'integer'],
   fieldInsert: { key: '', type: 'string' },
   fieldInsertKeyRequired: false,
   fieldInsertDialog: false,
@@ -104,6 +134,8 @@ const state = reactive({
   order: [],
   orderUpdateFromWatcher: false,
   objectListOriginalOrder: {},
+  arrayAdd: null,
+  isEditing: false,
 })
 
 const returnObject = computed(() => {
@@ -120,34 +152,175 @@ const fieldTypes = computed(() => {
   return state.fieldsTypes
 })
 
+// {
+//   "type": "string",                        // Declares the data type as string
+//   "description": "A text value",           // Describes the property
+//   "minLength": 1,                          // Minimum length of the string
+//   "maxLength": 100,                        // Maximum length of the string
+//   "pattern": "^[a-zA-Z0-9]+$",             // Regular expression pattern for string validation
+//   "format": "email",                       // Specific format of the string, e.g., email, date-time, uri
+//   "enum": ["option1", "option2", "option3"], // Enumerates allowable values for the string
+//   "default": "defaultText",                // Default value for the string
+//   "examples": ["exampleText1", "exampleText2"] // Examples of valid strings
+// }
+
+const extraTypeFields = {
+  string: {
+    enum: { default: [], bindings: { 'field-type': 'stringArray', 'label': 'Enum' } },
+    minLength: { default: 0, bindings: { 'field-type': 'integer', 'label': 'Minimum Length' } },
+    maxLength: { default: 100, bindings: { 'field-type': 'integer', 'label': 'Maximum Length' } },
+    pattern: { default: '', bindings: { 'field-type': 'text', 'label': 'Pattern' } },
+    format: { default: '', bindings: { 'field-type': 'select', 'label': 'Format', 'items': jsonSchemaStringFormats } },
+    default: { default: '', bindings: { 'field-type': 'text', 'label': 'Default' } },
+    examples: { default: [], bindings: { 'field-type': 'stringArray', 'label': 'Examples' } },
+  },
+  boolean: {
+    default: { default: false, bindings: { 'field-type': 'boolean', 'label': 'Default' } },
+  },
+  number: {
+    enum: { default: [], bindings: { 'field-type': 'numberArray', 'label': 'Enum' } },
+    minimum: { default: 0, bindings: { 'field-type': 'number', 'label': 'Minimum' } },
+    maximum: { default: 10, bindings: { 'field-type': 'number', 'label': 'Maximum' } },
+    exclusiveMinimum: { default: false, bindings: { 'field-type': 'boolean', 'label': 'Exclusive Minimum' } },
+    exclusiveMaximum: { default: false, bindings: { 'field-type': 'boolean', 'label': 'Exclusive Maximum' } },
+    multipleOf: { default: 0.5, bindings: { 'field-type': 'number', 'label': 'Multiple Of' } },
+    default: { default: 5, bindings: { 'field-type': 'number', 'label': 'Default' } },
+    examples: { default: [], bindings: { 'field-type': 'numberArray', 'label': 'Examples' } },
+  },
+  integer: {
+    enum: { default: [], bindings: { 'field-type': 'integerArray', 'label': 'Enum' } },
+    minimum: { default: 0, bindings: { 'field-type': 'integer', 'label': 'Minimum' } },
+    maximum: { default: 10, bindings: { 'field-type': 'integer', 'label': 'Maximum' } },
+    exclusiveMinimum: { default: false, bindings: { 'field-type': 'boolean', 'label': 'Exclusive Minimum' } },
+    exclusiveMaximum: { default: false, bindings: { 'field-type': 'boolean', 'label': 'Exclusive Maximum' } },
+    multipleOf: { default: 1, bindings: { 'field-type': 'integer', 'label': 'Multiple Of' } },
+    default: { default: 5, bindings: { 'field-type': 'integer', 'label': 'Default' } },
+    examples: { default: [], bindings: { 'field-type': 'integerArray', 'label': 'Examples' } },
+  },
+  array: {
+    minItems: { default: 0, bindings: { 'field-type': 'integer', 'label': 'Minimum Items' } },
+    maxItems: { default: 10, bindings: { 'field-type': 'integer', 'label': 'Maximum Items' } },
+    uniqueItems: { default: false, bindings: { 'field-type': 'boolean', 'label': 'Unique Items' } },
+    additionalItems: { default: false, bindings: { 'field-type': 'boolean', 'label': 'Additional Items' } },
+    items: { default: [], bindings: { 'field-type': 'array', 'label': 'Items' } },
+    default: { default: [], bindings: { 'field-type': 'array', 'label': 'Default' } },
+    examples: { default: [], bindings: { 'field-type': 'array', 'label': 'Examples' } },
+  },
+  object: {
+    required: { default: [], bindings: { 'field-type': 'stringArray', 'label': 'Required' } },
+    additionalProperties: { default: false, bindings: { 'field-type': 'boolean', 'label': 'Additional Properties' } },
+    minProperties: { default: 0, bindings: { 'field-type': 'integer', 'label': 'Minimum Properties' } },
+    maxProperties: { default: 10, bindings: { 'field-type': 'integer', 'label': 'Maximum Properties' } },
+  },
+}
+
+const clearExtraFields = () => {
+  if (!props.forFunctions) {
+    return
+  }
+  state.fieldInsert = {
+    key: state.fieldInsert.key,
+    type: state.fieldInsert.type,
+    description: state.fieldInsert.description,
+    required: state.fieldInsert.required,
+  }
+  // const extraFields = extraTypeFields[state.fieldInsert.type]
+  // Object.keys(extraFields).forEach((field) => {
+  //   state.fieldInsert[field] = extraFields[field].default
+  // })
+}
+
 // eslint-disable-next-line vue/no-dupe-keys
 const modelValue = ref(null)
 
-const addField = () => {
+const addArray = () => {
+  console.log(state.arrayAdd)
+  if (state.arrayAdd === null || state.arrayAdd === '') {
+    return
+  }
+  if (typeof state.arrayAdd !== 'string' && isNaN(state.arrayAdd)) {
+    return
+  }
+  if (modelValue.value.includes(state.arrayAdd)) {
+    return
+  }
+  modelValue.value.push(state.arrayAdd)
+  state.arrayAdd = null
+}
+
+const editField = (item) => {
+  state.isEditing = true
+  console.log(item)
+  console.log(modelValue.value[item.key])
+  state.fieldInsert = edgeGlobal.dupObject(modelValue.value[item.key])
+  console.log(state.fieldInsert)
+  state.fieldInsertDialog = true
+}
+
+const addField = async () => {
+  let fieldId = generateShortId()
+  if (state.fieldInsert?.fieldId) {
+    fieldId = state.fieldInsert.fieldId
+  }
   if (props.fieldType === 'object') {
-    state.order.push({ key: state.fieldInsert.key })
+    if (!state.fieldInsert.key) {
+      state.fieldInsertKeyRequired = true
+      state.fieldErrorMessage = 'Key is required'
+      return
+    }
+    if (!state.isEditing) {
+      if (Object.keys(modelValue.value).some((k) => {
+        return k.toLowerCase() === state.fieldInsert.key.toLowerCase()
+      })) {
+        state.fieldInsertKeyRequired = true
+        state.fieldErrorMessage = 'Key already exists'
+        return
+      }
+      state.order.push({ key: state.fieldInsert.key })
+    }
   }
   if (props.fieldType === 'array') {
-    let arrayValue = null
+    let value = null
     if (state.fieldInsert.type === 'string') {
-      arrayValue = ''
+      value = ''
     }
     else if (state.fieldInsert.type === 'boolean') {
-      arrayValue = false
+      value = false
     }
     else if (state.fieldInsert.type === 'array') {
-      arrayValue = []
+      value = []
     }
     else if (state.fieldInsert.type === 'object') {
-      arrayValue = {}
+      value = {}
     }
     else if (state.fieldInsert.type === 'number') {
-      arrayValue = 0
+      value = 0
     }
-    if (modelValue.value === null) {
-      modelValue.value = []
+    else if (state.fieldInsert.type === 'integer') {
+      value = 0
     }
-    modelValue.value.push(arrayValue)
+    let finalValue = null
+    if (props.forFunctions) {
+      finalValue = {
+        fieldId,
+        gptGenerated: true,
+        value,
+        ...state.fieldInsert,
+      }
+    }
+    else {
+      finalValue = {
+        value,
+        type: state.fieldInsert.type,
+      }
+    }
+    const existingObjectIndex = modelValue.value.findIndex(obj => obj.fieldId === fieldId)
+    if (existingObjectIndex !== -1) {
+      modelValue.value[existingObjectIndex] = finalValue
+    }
+    else {
+      modelValue.value.push(finalValue)
+    }
     state.order = modelValue.value.map((value, index) => {
       return {
         key: index,
@@ -157,42 +330,88 @@ const addField = () => {
     // state.order.push({ key: state.order.length, value: arrayValue })
 
     state.fieldInsert.key = ''
+    state.fieldInsert.description = ''
     state.fieldInsert.type = 'string'
-    state.fieldInsertDialog = false
+    if (props.forFunctions) {
+      state.fieldInsert.required = false
+      clearExtraFields()
+    }
     state.fieldInsertKeyRequired = false
     state.fieldErrorMessage = ''
+    state.isEditing = false
+    state.fieldInsertDialog = false
     return
   }
-  if (state.fieldInsert.key === '') {
+  if (!state.fieldInsert.key) {
     state.fieldInsertKeyRequired = true
     state.fieldErrorMessage = 'Key is required'
     return
   }
-
-  if (Object.keys(modelValue.value).some((k) => {
-    return k.toLowerCase() === state.fieldInsert.key.toLowerCase()
-  })) {
-    state.fieldInsertKeyRequired = true
-    state.fieldErrorMessage = 'Key already exists'
-    return
+  if (!state.isEditing) {
+    if (Object.keys(modelValue.value).some((k) => {
+      return k.toLowerCase() === state.fieldInsert.key.toLowerCase()
+    })) {
+      state.fieldInsertKeyRequired = true
+      state.fieldErrorMessage = 'Key already exists'
+      return
+    }
   }
+  let value = null
   if (state.fieldInsert.type === 'string') {
-    modelValue.value[state.fieldInsert.key] = ''
+    value = ''
   }
   else if (state.fieldInsert.type === 'boolean') {
-    modelValue.value[state.fieldInsert.key] = false
+    value = false
   }
   else if (state.fieldInsert.type === 'array') {
-    modelValue.value[state.fieldInsert.key] = []
+    value = []
   }
   else if (state.fieldInsert.type === 'object') {
-    modelValue.value[state.fieldInsert.key] = {}
+    value = {}
   }
   else if (state.fieldInsert.type === 'number') {
-    modelValue.value[state.fieldInsert.key] = 0
+    value = 0
   }
+  else if (state.fieldInsert.type === 'integer') {
+    value = 0
+  }
+  let finalValue = null
+  if (props.forFunctions) {
+    finalValue = {
+      fieldId,
+      gptGenerated: true,
+      value,
+      ...state.fieldInsert,
+    }
+  }
+  else {
+    finalValue = {
+      value,
+      type: state.fieldInsert.type,
+    }
+  }
+  const existingFieldIndex = Object.values(modelValue.value).findIndex(item => item.fieldId === fieldId)
+  if (existingFieldIndex !== -1) {
+    const oldKey = Object.keys(modelValue.value)[existingFieldIndex]
+    delete modelValue.value[oldKey]
+    modelValue.value[state.fieldInsert.key] = finalValue
+    const orderIndex = state.order.findIndex(item => item.key === oldKey)
+    if (orderIndex !== -1) {
+      state.order[orderIndex].key = state.fieldInsert.key
+    }
+  }
+  else {
+    modelValue.value[state.fieldInsert.key] = finalValue
+  }
+  modelValue.value[state.fieldInsert.key] = finalValue
   state.fieldInsert.key = ''
+  state.fieldInsert.description = ''
   state.fieldInsert.type = 'string'
+  state.isEditing = false
+  if (props.forFunctions) {
+    state.fieldInsert.required = false
+    clearExtraFields()
+  }
   state.fieldInsertDialog = false
   state.fieldInsertKeyRequired = false
   state.fieldErrorMessage = ''
@@ -258,6 +477,10 @@ const undo = async () => {
 }
 
 onBeforeMount(async () => {
+  if (props.forFunctions) {
+    state.fieldInsert.required = false
+    state.fieldInsert.description = ''
+  }
   modelValue.value = edgeGlobal.dupObject(props.modelValue)
   if (props.fieldType === 'objectList') {
     props.modelValue.forEach((item, index) => {
@@ -485,7 +708,24 @@ watch(() => state.order, () => {
 },
 { deep: true })
 
+const fieldInsertType = computed(() => {
+  return state.fieldInsert.type
+})
+
+watch(fieldInsertType, (newValue, oldValue) => {
+  if (oldValue !== newValue) {
+    console.log('fieldInsertType changed')
+    clearExtraFields()
+  }
+})
+
 watch(() => state.fieldInsertDialog, () => {
+  if (!state.fieldInsertDialog) {
+    state.isEditing = false
+  }
+  if (state.isEditing) {
+    return
+  }
   if (state.fieldInsertDialog) {
     if (props.fieldType === 'array') {
       if (props.fieldTypes.length === 1) {
@@ -493,18 +733,18 @@ watch(() => state.fieldInsertDialog, () => {
       }
     }
   }
+  else {
+    state.fieldInsert.key = ''
+    state.fieldInsert.type = 'string'
+    if (props.forFunctions) {
+      state.fieldInsert.required = false
+      clearExtraFields()
+    }
+    state.fieldInsertKeyRequired = false
+    state.fieldErrorMessage = ''
+  }
 },
 { deep: true })
-
-// const propsModelValue = computed(() => {
-//   return props.modelValue
-// })
-
-// watch(propsModelValue, () => {
-//   state.afterMount = false
-//   modelValue.value = edgeGlobal.dupObject(props.modelValue)
-//   state.afterMount = true
-// }, { deep: true })
 
 watch(modelValue, () => {
   if (state.afterMount) {
@@ -550,6 +790,83 @@ watch(modelValue, () => {
         </template>
       </v-select>
     </template>
+    <v-input
+      v-if="props.fieldType === 'stringArray' || props.fieldType === 'numberArray' || props.fieldType === 'intArray'"
+      v-model="modelValue"
+      v-bind="props.bindings"
+      :rules="props.rules"
+      :label="props.label"
+      :hint="props.hint"
+      :persistent-hint="props.persistentHint"
+      :disabled="props.disabled"
+      class="mt-1"
+    >
+      <v-card flat width="100%" color="transparent">
+        <v-card-title v-if="state.fieldInsert.type !== 'string'" class="headline">
+          {{ props.label }}
+        </v-card-title>
+        <v-toolbar color="transparent" flat class="pl-2">
+          <template v-if="props.fieldType === 'numberArray'">
+            <vue-number-input
+              v-model="state.arrayAdd"
+              :step=".1"
+              controls
+              size="medium"
+              v-bind="props.bindings"
+              @keyup.enter="addArray"
+            />
+            <v-spacer />
+            <v-btn icon @click="addArray">
+              <v-icon>mdi-plus</v-icon>
+            </v-btn>
+          </template>
+          <template v-else-if="props.fieldType === 'intArray'">
+            <vue-number-input
+              v-model="state.arrayAdd"
+              :step="1"
+              controls
+              size="medium"
+              v-bind="props.bindings"
+              @keyup.enter="addArray"
+              @keydown="event => (event.key === '.' || event.keyCode === 190) && event.preventDefault()"
+            />
+            <v-spacer />
+            <v-btn icon @click="addArray">
+              <v-icon>mdi-plus</v-icon>
+            </v-btn>
+          </template>
+          <v-text-field
+            v-else
+            v-model="state.arrayAdd"
+            variant="underlined"
+            density="compact"
+            hide-details
+            :label="props.label"
+            append-inner-icon="mdi-plus"
+            class="mr-2"
+            @click:append-inner="addArray"
+            @keyup.enter="addArray"
+          />
+        </v-toolbar>
+        <v-list variant="tonal" density="compact">
+          <v-list-item
+            v-for="(item, i) in modelValue"
+            :key="i"
+            :value="item"
+            color="primary"
+          >
+            <v-list-item-title>
+              {{ item }}
+            </v-list-item-title>
+            <template #append>
+              <v-btn flat size="x-small" icon @click="modelValue.splice(i, 1)">
+                <v-icon>mdi-delete</v-icon>
+              </v-btn>
+            </template>
+          </v-list-item>
+        </v-list>
+      </v-card>
+    </v-input>
     <v-select
       v-if="props.fieldType === 'users'"
       v-model="modelValue"
@@ -566,27 +883,59 @@ watch(modelValue, () => {
         <helper :helper="props.helper" />
       </template>
     </v-select>
-    <v-input
-      v-if="props.fieldType === 'number'"
-      v-model="modelValue"
-      v-bind="props.bindings"
-      :rules="props.rules"
-      :label="props.label"
-      :hint="props.hint"
-      :persistent-hint="props.persistentHint"
-      :disabled="props.disabled"
-      class="mt-1"
-    >
-      <vue-number-input
+    <v-card v-if="props.fieldType === 'number'" flat color="transparent">
+      <v-card-title class="text-caption pb-0">
+        {{ props.label }}
+      </v-card-title>
+      <v-input
         v-model="modelValue"
-        :step=".1"
-        controls
-        size="medium"
         v-bind="props.bindings"
         :rules="props.rules"
+        :label="props.label"
+        :hint="props.hint"
+        :persistent-hint="props.persistentHint"
         :disabled="props.disabled"
-      />
-    </v-input>
+        class="mt-1"
+      >
+        <vue-number-input
+          v-model="modelValue"
+          style="width: 100%"
+          :step=".1"
+          controls
+          size="medium"
+          v-bind="props.bindings"
+          :rules="props.rules"
+          :disabled="props.disabled"
+        />
+      </v-input>
+    </v-card>
+    <v-card v-if="props.fieldType === 'integer'" flat color="transparent">
+      <v-card-title class="text-caption pb-0">
+        {{ props.label }}
+      </v-card-title>
+      <v-input
+        v-model="modelValue"
+        v-bind="props.bindings"
+        :rules="props.rules"
+        :label="props.label"
+        :hint="props.hint"
+        :persistent-hint="props.persistentHint"
+        :disabled="props.disabled"
+        class="mt-1"
+      >
+        <vue-number-input
+          v-model="modelValue"
+          style="width: 100%"
+          :step="1"
+          controls
+          size="medium"
+          v-bind="props.bindings"
+          :rules="props.rules"
+          :disabled="props.disabled"
+          @keydown="event => (event.key === '.' || event.keyCode === 190) && event.preventDefault()"
+        />
+      </v-input>
+    </v-card>
     <v-text-field
       v-if="props.fieldType === 'money'"
       v-model="modelValue"
@@ -689,29 +1038,41 @@ watch(modelValue, () => {
           </v-card-actions>
         </v-card>
       </v-dialog>
-      <v-card :rounded="0" flat class="fill-height">
-        <v-toolbar class="mb-2" density="compact" flat>
-          <v-icon v-if="props.fieldType === 'object'" class="mx-4">
-            mdi-set-merge
-          </v-icon>
-          <v-icon v-else class="mx-4">
-            mdi-code-array
-          </v-icon>
-          {{ props.label }}
+      <v-card :color="state.forFunctions ? '' : 'transparent'" :rounded="0" elevation="0" flat class="fill-height">
+        <v-toolbar v-if="!(props.forFunctions && modelValue.length >= 1)" :color="state.forFunctions ? '' : 'transparent'" class="mb-0" density="compact" flat>
+          <template v-if="!props.forFunctions">
+            <v-icon v-if="props.fieldType === 'object'" class="mx-4">
+              mdi-set-merge
+            </v-icon>
+            <v-icon v-else class="mx-4">
+              mdi-code-array
+            </v-icon>
+            {{ props.label }}
+          </template>
           <v-spacer />
 
-          <v-btn v-bind="props">
+          <v-btn size="x-small" variant="tonal" v-bind="props">
             <template v-if="props.fieldType === 'object'">
               Add Field
             </template>
             <template v-else>
-              Add Item
+              <template v-if="props.forFunctions">
+                Array Item Params
+              </template>
+              <template v-else>
+                Add Item
+              </template>
             </template>
             <v-dialog v-model="state.fieldInsertDialog" max-width="400" activator="parent">
               <v-card>
                 <v-toolbar density="compact">
                   <v-toolbar-title v-if="props.fieldType === 'object'">
-                    Add Field
+                    <template v-if="!state.isEditing">
+                      Add Field
+                    </template>
+                    <template v-else>
+                      Update Field
+                    </template>
                   </v-toolbar-title>
                   <v-toolbar-title v-else>
                     Add Item
@@ -737,6 +1098,48 @@ watch(modelValue, () => {
                     label="Type"
                     hide-details
                   />
+                  <v-textarea
+                    v-if="props.forFunctions"
+                    v-model="state.fieldInsert.description"
+                    label="Description"
+                    hide-details
+                    rows="2"
+                  />
+                  <v-checkbox
+                    v-if="props.forFunctions && props.fieldType !== 'array'"
+                    v-model="state.fieldInsert.required"
+                    label="Field Required"
+                    hide-details
+                  />
+                  <v-menu v-if="props.forFunctions">
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        block
+                        variant="tonal"
+                      >
+                        Add JSON Schema Params
+                      </v-btn>
+                    </template>
+                    <v-list>
+                      <template v-for="(item, i) in extraTypeFields[state.fieldInsert.type]">
+                        <v-list-item
+                          v-if="!state.fieldInsert.hasOwnProperty(i)"
+                          :key="i"
+                          :value="item"
+                          color="primary"
+                          @click="state.fieldInsert[i] = item.default"
+                        >
+                          <v-list-item-title>
+                            {{ item.bindings.label }}
+                          </v-list-item-title>
+                        </v-list-item>
+                      </template>
+                    </v-list>
+                  </v-menu>
+                  <template v-for="(value, key) in state.fieldInsert" :key="key">
+                    <g-input v-if="!['type', 'key', 'description', 'required', 'gptGenerated', 'value', 'fieldId'].includes(key)" v-model="state.fieldInsert[key]" :disable-tracking="true" v-bind="extraTypeFields[state.fieldInsert.type][key].bindings" />
+                  </template>
                 </v-card-text>
                 <v-card-actions>
                   <v-spacer />
@@ -744,7 +1147,12 @@ watch(modelValue, () => {
                     Cancel
                   </v-btn>
                   <v-btn color="primary" @click="addField">
-                    Insert
+                    <template v-if="!state.isEditing">
+                      Insert
+                    </template>
+                    <template v-else>
+                      Update
+                    </template>
                   </v-btn>
                 </v-card-actions>
               </v-card>
@@ -752,56 +1160,16 @@ watch(modelValue, () => {
           </v-btn>
           <helper v-if="props.helper" :helper="props.helper" />
         </v-toolbar>
-        <v-card-text class="pt-0">
+        <v-card-text class="py-0 px-0">
           <draggable
             v-model="state.order"
             handle=".handle"
             item-key="key"
           >
             <template #item="{ element }">
-              <div>
-                <v-container v-if="typeof modelValue[element.key] === 'object' && !Array.isArray(modelValue[element.key])" :key="`object-${element.key}`" style="position: relative;">
-                  <v-btn style="position: absolute;right:0px; top:0px;z-index: 99;" size="x-small" icon @click="state.removeField = element.key">
-                    <v-icon size="x-large">
-                      mdi-delete
-                    </v-icon>
-                  </v-btn>
-                  <v-btn
-                    v-if="props.fieldType === 'object'"
-                    style="position: absolute;left:66px; top:26px;z-index: 99;"
-                    size="small"
-                    class="py-0"
-                    @click="openKeyMenu(element.key)"
-                  >
-                    {{ element.key }}
-                  </v-btn>
-                  <v-icon class="pointer handle" style="position: absolute;left:-8px; top:26px;z-index: 99;">
-                    mdi-format-align-justify
-                  </v-icon>
-                  <g-input v-model="modelValue[element.key]" :label="getArrayObjectLabel(element.key)" :disable-tracking="true" field-type="object" />
-                </v-container>
-                <v-container v-else-if="Array.isArray(modelValue[element.key])" :key="`array-${element.key}`" style="position: relative;">
-                  <v-btn style="position: absolute;right:0px; top:0px;z-index: 99;" size="x-small" icon @click="state.removeField = element.key">
-                    <v-icon size="x-large">
-                      mdi-delete
-                    </v-icon>
-                  </v-btn>
-                  <v-btn
-                    v-if="props.fieldType === 'object'"
-                    style="position: absolute;left:66px; top:26px;z-index: 99;"
-                    size="small"
-                    class="py-0"
-                    @click="openKeyMenu(element.key)"
-                  >
-                    {{ element.key }}
-                  </v-btn>
-                  <v-icon class="pointer handle" style="position: absolute;left:-8px; top:26px;z-index: 99;">
-                    mdi-format-align-justify
-                  </v-icon>
-                  <g-input v-model="modelValue[element.key]" :bindings="props.bindings" :label="getArrayObjectLabel(element.key)" :disable-tracking="true" field-type="array" />
-                </v-container>
-                <v-container v-else :key="`others-${element.key}`" class="py-1">
-                  <v-row dense>
+              <v-container :key="element.key" class="py-1">
+                <v-card variant="tonal">
+                  <v-row density="compact">
                     <v-col class="text-right pt-6" cols="1">
                       <v-icon class="handle pointer">
                         mdi-format-align-justify
@@ -810,41 +1178,56 @@ watch(modelValue, () => {
                     <v-col
                       v-show="props.fieldType !== 'array'"
                       class="pt-5"
-                      cols="5"
+                      cols="3"
                     >
-                      <v-btn size="small" variant="outlined" class="py-0" block @click="openKeyMenu(element.key)">
+                      <template v-if="modelValue[element.key].gptGenerated">
+                        <v-btn size="small" prepend-icon="mdi-pencil" class="text-none" variant="tonal" @click="editField(element)">
+                          {{ element.key }}
+                        </v-btn>
+                      </template>
+                      <v-btn v-else size="small" variant="outlined" class="py-0 text-none" block @click="openKeyMenu(element.key)">
                         {{ element.key }}
                       </v-btn>
                     </v-col>
-                    <v-col class="py-0">
-                      <v-text-field
-                        v-if="typeof modelValue[element.key] === 'string'"
-                        v-model="modelValue[element.key]"
-                        class="mb-1"
-                        :label="getArrayObjectLabel(element.key)"
-                        v-bind="props.bindings"
-                        placeholder="Enter value here"
-                        hide-details
-                      />
-                      <v-checkbox
-                        v-else-if="typeof modelValue[element.key] === 'boolean'"
-                        :key="`select-${element.key}`"
-                        v-model="modelValue[element.key]"
-                        class="mb-1"
-                        hide-details
-                        :label="getArrayObjectLabel(element.key)"
-                        v-bind="props.bindings"
-                      />
-                      <vue-number-input
-                        v-else-if="isNumber(modelValue[element.key])"
-                        :key="`number-${element.key}`"
-                        v-model="modelValue[element.key]"
-                        :step=".1"
-                        class="mt-3"
-                        controls
-                        size="medium"
-                        v-bind="props.bindings"
-                      />
+                    <v-col class="py-0 text-right">
+                      <template v-if="modelValue[element.key].gptGenerated || props.forFunctions">
+                        <function-chips class="mt-5" :field="modelValue[element.key]" />
+                      </template>
+                      <template v-else>
+                        <template v-if="typeof modelValue[element.key].value === 'object'">
+                          <g-input v-model="modelValue[element.key].value" :for-functions="props.forFunctions" :bindings="props.bindings" :label="getArrayObjectLabel(element.key)" :disable-tracking="true" :field-type="Array.isArray(modelValue[element.key].value) ? 'array' : 'object'" />
+                        </template>
+                        <template v-else>
+                          <v-text-field
+                            v-if="typeof modelValue[element.key].value === 'string'"
+                            v-model="modelValue[element.key].value"
+                            class="mb-1"
+                            :label="getArrayObjectLabel(element.key)"
+                            v-bind="props.bindings"
+                            placeholder="Enter value here"
+                            hide-details
+                          />
+                          <v-checkbox
+                            v-else-if="typeof modelValue[element.key].value === 'boolean'"
+                            :key="`select-${element.key}`"
+                            v-model="modelValue[element.key].value"
+                            class="mb-1"
+                            hide-details
+                            :label="getArrayObjectLabel(element.key)"
+                            v-bind="props.bindings"
+                          />
+                          <vue-number-input
+                            v-else-if="isNumber(modelValue[element.key])"
+                            :key="`number-${element.key}`"
+                            v-model="modelValue[element.key].value"
+                            :step=".1"
+                            class="mt-3"
+                            controls
+                            size="medium"
+                            v-bind="props.bindings"
+                          />
+                        </template>
+                      </template>
                     </v-col>
                     <v-col class="pt-4" cols="1">
                       <v-btn variant="text" size="small" icon @click="state.removeField = element.key">
@@ -854,11 +1237,15 @@ watch(modelValue, () => {
                       </v-btn>
                     </v-col>
                   </v-row>
-                </v-container>
-              </div>
+                  <v-row v-if="typeof modelValue[element.key].value === 'object'" class="mt-0 px-1 pb-1">
+                    <v-col cols="12">
+                      <g-input v-model="modelValue[element.key].value" :for-functions="props.forFunctions" :bindings="props.bindings" :label="getArrayObjectLabel(element.key)" :disable-tracking="true" :field-type="Array.isArray(modelValue[element.key].value) ? 'array' : 'object'" />
+                    </v-col>
+                  </v-row>
+                </v-card>
+              </v-container>
             </template>
           </draggable>
-
           <v-dialog
             v-model="removeFieldDialogShow"
             persistent
