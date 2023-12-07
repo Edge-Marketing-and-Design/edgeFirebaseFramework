@@ -82,6 +82,13 @@ export const edgeRules = {
     }
     return true
   },
+  endpoint: (value: string) => {
+    const urlPattern = /^https?:\/\/(?!:\/\/)([a-zA-Z0-9]+\.)?[a-zA-Z0-9][a-zA-Z0-9-]+(\.[a-zA-Z]{2,6})?(:\d{1,5})?(\/[^\s]*)?$/i
+    if (!urlPattern.test(value)) {
+      return `"${value}" is not a valid URL. The URL must include the protocol (http or https) and the path.`
+    }
+    return true
+  },
   domains: (value: string) => {
     const domainPattern = /^https?:\/\/(?!:\/\/)([a-zA-Z0-9]+\.)?[a-zA-Z0-9][a-zA-Z0-9-]+(\.[a-zA-Z]{2,6})?(:\d{1,5})?$/i
     const localhostPattern = /^https?:\/\/localhost(:\d{1,5})?$/i

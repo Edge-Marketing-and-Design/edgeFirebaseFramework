@@ -1169,23 +1169,23 @@ watch(modelValue, () => {
             <template #item="{ element }">
               <v-container :key="element.key" class="py-1">
                 <v-card variant="tonal">
-                  <v-row density="compact">
-                    <v-col class="text-right pt-6" cols="1">
+                  <v-row dense>
+                    <v-col class="text-right pt-5" cols="1">
                       <v-icon class="handle pointer">
                         mdi-format-align-justify
                       </v-icon>
                     </v-col>
                     <v-col
                       v-show="props.fieldType !== 'array'"
-                      class="pt-5"
+                      class="pt-3"
                       cols="3"
                     >
                       <template v-if="modelValue[element.key].gptGenerated">
-                        <v-btn size="small" prepend-icon="mdi-pencil" class="text-none" variant="tonal" @click="editField(element)">
+                        <v-btn prepend-icon="mdi-pencil" class="text-none" variant="tonal" @click="editField(element)">
                           {{ element.key }}
                         </v-btn>
                       </template>
-                      <v-btn v-else size="small" variant="outlined" class="py-0 text-none" block @click="openKeyMenu(element.key)">
+                      <v-btn v-else size="small" variant="outlined" class="py-0 mt-2 text-none" block @click="openKeyMenu(element.key)">
                         {{ element.key }}
                       </v-btn>
                     </v-col>
@@ -1193,40 +1193,34 @@ watch(modelValue, () => {
                       <template v-if="modelValue[element.key].gptGenerated || props.forFunctions">
                         <function-chips class="mt-5" :field="modelValue[element.key]" />
                       </template>
-                      <template v-else>
-                        <template v-if="typeof modelValue[element.key].value === 'object'">
-                          <g-input v-model="modelValue[element.key].value" :for-functions="props.forFunctions" :bindings="props.bindings" :label="getArrayObjectLabel(element.key)" :disable-tracking="true" :field-type="Array.isArray(modelValue[element.key].value) ? 'array' : 'object'" />
-                        </template>
-                        <template v-else>
-                          <v-text-field
-                            v-if="typeof modelValue[element.key].value === 'string'"
-                            v-model="modelValue[element.key].value"
-                            class="mb-1"
-                            :label="getArrayObjectLabel(element.key)"
-                            v-bind="props.bindings"
-                            placeholder="Enter value here"
-                            hide-details
-                          />
-                          <v-checkbox
-                            v-else-if="typeof modelValue[element.key].value === 'boolean'"
-                            :key="`select-${element.key}`"
-                            v-model="modelValue[element.key].value"
-                            class="mb-1"
-                            hide-details
-                            :label="getArrayObjectLabel(element.key)"
-                            v-bind="props.bindings"
-                          />
-                          <vue-number-input
-                            v-else-if="isNumber(modelValue[element.key])"
-                            :key="`number-${element.key}`"
-                            v-model="modelValue[element.key].value"
-                            :step=".1"
-                            class="mt-3"
-                            controls
-                            size="medium"
-                            v-bind="props.bindings"
-                          />
-                        </template>
+                      <template v-else-if="typeof modelValue[element.key].value !== 'object'">
+                        <v-text-field
+                          v-if="typeof modelValue[element.key].value === 'string'"
+                          v-model="modelValue[element.key].value"
+                          v-bind="props.bindings"
+                          placeholder="Enter value here"
+                          hide-details
+                        />
+                        <v-checkbox
+                          v-else-if="typeof modelValue[element.key].value === 'boolean'"
+                          :key="`select-${element.key}`"
+                          v-model="modelValue[element.key].value"
+                          class="mb-1"
+                          hide-details
+                          :label="getArrayObjectLabel(element.key)"
+                          v-bind="props.bindings"
+                        />
+                        <vue-number-input
+                          v-else-if="isNumber(modelValue[element.key])"
+                          :key="`number-${element.key}`"
+                          v-model="modelValue[element.key].value"
+                          :step=".1"
+                          class="mt-3"
+                          density="compact"
+                          controls
+                          size="medium"
+                          v-bind="props.bindings"
+                        />
                       </template>
                     </v-col>
                     <v-col class="pt-4" cols="1">
