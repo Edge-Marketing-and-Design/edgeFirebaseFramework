@@ -1,6 +1,5 @@
 <script setup>
-// TODO: MAKE SURE ADD WAY TO EDIT THE FUNCTION AND UPDATE THE FUNCTION... ADD HELPERS TO THE SCHEMA PARAMS
-// TODO: FINISH EDIT FUNCTION, LOOK AT fieldInsertDialog
+// TODO:  ADD HELPERS TO THE SCHEMA PARAMS
 
 import { computed, defineProps, inject, nextTick, onBeforeMount, onMounted, reactive, ref, watch } from 'vue'
 import functionChips from './gSubInput/gptFunctionChips.vue'
@@ -250,10 +249,7 @@ const addArray = () => {
 
 const editField = (item) => {
   state.isEditing = true
-  console.log(item)
-  console.log(modelValue.value[item.key])
   state.fieldInsert = edgeGlobal.dupObject(modelValue.value[item.key])
-  console.log(state.fieldInsert)
   state.fieldInsertDialog = true
 }
 
@@ -314,9 +310,9 @@ const addField = async () => {
         type: state.fieldInsert.type,
       }
     }
-    const existingObjectIndex = modelValue.value.findIndex(obj => obj.fieldId === fieldId)
-    if (existingObjectIndex !== -1) {
-      modelValue.value[existingObjectIndex] = finalValue
+    console.log(state.isEditing)
+    if (state.isEditing) {
+      modelValue.value[0] = finalValue
     }
     else {
       modelValue.value.push(finalValue)
@@ -582,6 +578,9 @@ const getArrayObjectLabel = (key) => {
     return key
   }
   else {
+    if (props.forFunctions) {
+      return 'Array Item Params'
+    }
     return `Array Item #${key + 1}`
   }
 }
@@ -684,7 +683,10 @@ watch(() => state.order, () => {
   if (props.fieldType === 'object') {
     modelValue.value.flingKeyOrder = edgeGlobal.dupObject(state.order)
   }
-
+  if (props.fromFunctions) {
+    return
+  }
+  console.log('order changed')
   if (props.fieldType === 'array') {
     if (!state.orderUpdateFromWatcher) {
       if (state.order.length > 0) {
@@ -728,7 +730,7 @@ watch(() => state.fieldInsertDialog, () => {
   }
   if (state.fieldInsertDialog) {
     if (props.fieldType === 'array') {
-      if (props.fieldTypes.length === 1) {
+      if (!props.forFunctions) {
         addField()
       }
     }
@@ -1051,7 +1053,7 @@ watch(modelValue, () => {
           </template>
           <v-spacer />
 
-          <v-btn size="x-small" variant="tonal" v-bind="props">
+          <v-btn size="x-small" variant="tonal" @click="state.fieldInsertDialog = true">
             <template v-if="props.fieldType === 'object'">
               Add Field
             </template>
@@ -1063,100 +1065,6 @@ watch(modelValue, () => {
                 Add Item
               </template>
             </template>
-            <v-dialog v-model="state.fieldInsertDialog" max-width="400" activator="parent">
-              <v-card>
-                <v-toolbar density="compact">
-                  <v-toolbar-title v-if="props.fieldType === 'object'">
-                    <template v-if="!state.isEditing">
-                      Add Field
-                    </template>
-                    <template v-else>
-                      Update Field
-                    </template>
-                  </v-toolbar-title>
-                  <v-toolbar-title v-else>
-                    Add Item
-                  </v-toolbar-title>
-                  <v-spacer />
-                  <v-btn icon @click="state.fieldInsertDialog = false">
-                    <v-icon>mdi-close</v-icon>
-                  </v-btn>
-                </v-toolbar>
-                <v-card-text>
-                  <v-text-field
-                    v-if="props.fieldType === 'object'"
-                    v-model="state.fieldInsert.key"
-                    :error="state.fieldInsertKeyRequired"
-                    v-bind="props.bindings"
-                    label="Field Key"
-                    :error-messages="state.fieldErrorMessage"
-                  />
-                  <v-select
-                    v-model="state.fieldInsert.type"
-                    v-bind="props.bindings"
-                    :items="fieldTypes"
-                    label="Type"
-                    hide-details
-                  />
-                  <v-textarea
-                    v-if="props.forFunctions"
-                    v-model="state.fieldInsert.description"
-                    label="Description"
-                    hide-details
-                    rows="2"
-                  />
-                  <v-checkbox
-                    v-if="props.forFunctions && props.fieldType !== 'array'"
-                    v-model="state.fieldInsert.required"
-                    label="Field Required"
-                    hide-details
-                  />
-                  <v-menu v-if="props.forFunctions">
-                    <template #activator="{ props }">
-                      <v-btn
-                        v-bind="props"
-                        block
-                        variant="tonal"
-                      >
-                        Add JSON Schema Params
-                      </v-btn>
-                    </template>
-                    <v-list>
-                      <template v-for="(item, i) in extraTypeFields[state.fieldInsert.type]">
-                        <v-list-item
-                          v-if="!state.fieldInsert.hasOwnProperty(i)"
-                          :key="i"
-                          :value="item"
-                          color="primary"
-                          @click="state.fieldInsert[i] = item.default"
-                        >
-                          <v-list-item-title>
-                            {{ item.bindings.label }}
-                          </v-list-item-title>
-                        </v-list-item>
-                      </template>
-                    </v-list>
-                  </v-menu>
-                  <template v-for="(value, key) in state.fieldInsert" :key="key">
-                    <g-input v-if="!['type', 'key', 'description', 'required', 'gptGenerated', 'value', 'fieldId'].includes(key)" v-model="state.fieldInsert[key]" :disable-tracking="true" v-bind="extraTypeFields[state.fieldInsert.type][key].bindings" />
-                  </template>
-                </v-card-text>
-                <v-card-actions>
-                  <v-spacer />
-                  <v-btn @click="state.fieldInsertDialog = false">
-                    Cancel
-                  </v-btn>
-                  <v-btn color="primary" @click="addField">
-                    <template v-if="!state.isEditing">
-                      Insert
-                    </template>
-                    <template v-else>
-                      Update
-                    </template>
-                  </v-btn>
-                </v-card-actions>
-              </v-card>
-            </v-dialog>
           </v-btn>
           <helper v-if="props.helper" :helper="props.helper" />
         </v-toolbar>
@@ -1189,6 +1097,15 @@ watch(modelValue, () => {
                         {{ element.key }}
                       </v-btn>
                     </v-col>
+                    <v-col
+                      v-if="props.fieldType === 'array'"
+                      class="pt-3"
+                      cols="3"
+                    >
+                      <v-btn prepend-icon="mdi-pencil" class="text-none" variant="tonal" @click="editField(element)">
+                        {{ element.value.type }}
+                      </v-btn>
+                    </v-col>
                     <v-col class="py-0 text-right">
                       <template v-if="modelValue[element.key].gptGenerated || props.forFunctions">
                         <function-chips class="mt-5" :field="modelValue[element.key]" />
@@ -1211,7 +1128,7 @@ watch(modelValue, () => {
                           v-bind="props.bindings"
                         />
                         <vue-number-input
-                          v-else-if="isNumber(modelValue[element.key])"
+                          v-else-if="modelValue[element.key].type === 'number'"
                           :key="`number-${element.key}`"
                           v-model="modelValue[element.key].value"
                           :step=".1"
@@ -1221,6 +1138,21 @@ watch(modelValue, () => {
                           size="medium"
                           v-bind="props.bindings"
                         />
+                        <vue-number-input
+                          v-else-if="modelValue[element.key].type === 'integer'"
+                          :key="`integer-${element.key}`"
+                          v-model="modelValue[element.key].value"
+                          :step="1"
+                          class="mt-3"
+                          density="compact"
+                          controls
+                          size="medium"
+                          v-bind="props.bindings"
+                          @keydown="event => (event.key === '.' || event.keyCode === 190) && event.preventDefault()"
+                        />
+                      </template>
+                      <template v-else>
+                        <div class="mt-9" style="with:100%;border-bottom: solid thin;" />
                       </template>
                     </v-col>
                     <v-col class="pt-4" cols="1">
@@ -1236,6 +1168,13 @@ watch(modelValue, () => {
                       <g-input v-model="modelValue[element.key].value" :for-functions="props.forFunctions" :bindings="props.bindings" :label="getArrayObjectLabel(element.key)" :disable-tracking="true" :field-type="Array.isArray(modelValue[element.key].value) ? 'array' : 'object'" />
                     </v-col>
                   </v-row>
+                  <!-- <template v-if="props.forFunctions && props.fieldType === 'array'">
+                    <v-row v-if="element.value.type === 'array' || element.value.type === 'object'" class="mt-0 px-1 pb-1">
+                      <v-col cols="12">
+                        <g-input v-model="modelValue[0].value" :for-functions="props.forFunctions" :bindings="props.bindings" :label="element.value.type" :disable-tracking="true" field-type="object" />
+                      </v-col>
+                    </v-row>
+                  </template> -->
                 </v-card>
               </v-container>
             </template>
@@ -1377,6 +1316,101 @@ watch(modelValue, () => {
       </v-alert>
     </v-fade-transition>
   </div>
+  <v-dialog v-model="state.fieldInsertDialog" max-width="400">
+    <v-card>
+      <v-toolbar density="compact">
+        <v-toolbar-title v-if="props.fieldType === 'object'">
+          <template v-if="!state.isEditing">
+            Add Field
+          </template>
+          <template v-else>
+            Update Field
+          </template>
+        </v-toolbar-title>
+        <v-toolbar-title v-else>
+          Add Item
+        </v-toolbar-title>
+        <v-spacer />
+        <v-btn icon @click="state.fieldInsertDialog = false">
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
+      </v-toolbar>
+      <v-card-text>
+        <v-text-field
+          v-if="props.fieldType === 'object'"
+          v-model="state.fieldInsert.key"
+          :error="state.fieldInsertKeyRequired"
+          v-bind="props.bindings"
+          label="Field Key"
+          :error-messages="state.fieldErrorMessage"
+        />
+        <v-select
+          v-model="state.fieldInsert.type"
+          :disabled="state.isEditing"
+          v-bind="props.bindings"
+          :items="fieldTypes"
+          label="Type"
+          hide-details
+        />
+        <v-textarea
+          v-if="props.forFunctions"
+          v-model="state.fieldInsert.description"
+          label="Description"
+          hide-details
+          rows="2"
+        />
+        <v-checkbox
+          v-if="props.forFunctions && props.fieldType !== 'array'"
+          v-model="state.fieldInsert.required"
+          label="Field Required"
+          hide-details
+        />
+        <v-menu v-if="props.forFunctions">
+          <template #activator="{ props }">
+            <v-btn
+              v-bind="props"
+              block
+              variant="tonal"
+            >
+              Add JSON Schema Params
+            </v-btn>
+          </template>
+          <v-list>
+            <template v-for="(item, i) in extraTypeFields[state.fieldInsert.type]">
+              <v-list-item
+                v-if="!state.fieldInsert.hasOwnProperty(i)"
+                :key="i"
+                :value="item"
+                color="primary"
+                @click="state.fieldInsert[i] = item.default"
+              >
+                <v-list-item-title>
+                  {{ item.bindings.label }}
+                </v-list-item-title>
+              </v-list-item>
+            </template>
+          </v-list>
+        </v-menu>
+        <template v-for="(value, key) in state.fieldInsert" :key="key">
+          <g-input v-if="!['type', 'key', 'description', 'required', 'gptGenerated', 'value', 'fieldId'].includes(key)" v-model="state.fieldInsert[key]" :disable-tracking="true" v-bind="extraTypeFields[state.fieldInsert.type][key].bindings" />
+        </template>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn @click="state.fieldInsertDialog = false">
+          Cancel
+        </v-btn>
+        <v-btn color="primary" @click="addField">
+          <template v-if="!state.isEditing">
+            Insert
+          </template>
+          <template v-else>
+            Update
+          </template>
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <style lang="scss">
