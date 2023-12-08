@@ -387,7 +387,11 @@ const addField = async () => {
     }
   }
   const existingFieldIndex = Object.values(modelValue.value).findIndex(item => item.fieldId === fieldId)
+
   if (existingFieldIndex !== -1) {
+    if (modelValue.value[existingFieldIndex]?.value) {
+      finalValue.value = modelValue.value[existingFieldIndex].value
+    }
     const oldKey = Object.keys(modelValue.value)[existingFieldIndex]
     delete modelValue.value[oldKey]
     modelValue.value[state.fieldInsert.key] = finalValue
@@ -402,7 +406,6 @@ const addField = async () => {
   modelValue.value[state.fieldInsert.key] = finalValue
   state.fieldInsert.key = ''
   state.fieldInsert.description = ''
-  state.fieldInsert.type = 'string'
   state.isEditing = false
   if (props.forFunctions) {
     state.fieldInsert.required = false
@@ -411,6 +414,27 @@ const addField = async () => {
   state.fieldInsertDialog = false
   state.fieldInsertKeyRequired = false
   state.fieldErrorMessage = ''
+}
+
+const typeColor = (fieldType) => {
+  console.log('typeColor')
+  console.log(fieldType)
+  if (fieldType === 'string') {
+    return '#0d47a1' // dark blue
+  }
+  if (fieldType === 'boolean') {
+    return '#2e7d32' // dark green
+  }
+  if (fieldType === 'array') {
+    return '#424242' // dark grey
+  }
+  if (fieldType === 'object') {
+    return '#1565c0' // darker light blue
+  }
+  if (fieldType === 'number' || fieldType === 'integer') {
+    return '#000000' // black
+  }
+  return '#0d47a1' // dark blue
 }
 
 const removeField = (key) => {
@@ -715,6 +739,9 @@ const fieldInsertType = computed(() => {
 })
 
 watch(fieldInsertType, (newValue, oldValue) => {
+  if (state.isEditing) {
+    return
+  }
   if (oldValue !== newValue) {
     console.log('fieldInsertType changed')
     clearExtraFields()
@@ -737,7 +764,6 @@ watch(() => state.fieldInsertDialog, () => {
   }
   else {
     state.fieldInsert.key = ''
-    state.fieldInsert.type = 'string'
     if (props.forFunctions) {
       state.fieldInsert.required = false
       clearExtraFields()
@@ -1076,7 +1102,7 @@ watch(modelValue, () => {
           >
             <template #item="{ element }">
               <v-container :key="element.key" class="py-1">
-                <v-card variant="tonal">
+                <v-card :style="`background-color:${typeColor(modelValue[element.key].type)}`">
                   <v-row dense>
                     <v-col class="text-right pt-5" cols="1">
                       <v-icon class="handle pointer">

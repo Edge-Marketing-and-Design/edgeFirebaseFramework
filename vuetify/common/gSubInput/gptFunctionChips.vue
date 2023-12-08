@@ -10,17 +10,17 @@ const props = defineProps({
 
 <template>
   <div>
-    <v-chip size="small" label color="primary" variant="tonal">
+    <v-chip size="small" label color="primary" variant="flat">
       Type: {{ field.type }}
     </v-chip>
-    <v-chip v-if="field.required" size="small" class="ml-1" label color="error" variant="tonal">
+    <v-chip v-if="field.required" size="small" class="ml-1" label color="error" variant="flat">
       Required
     </v-chip>
     <v-menu
       v-if="field?.enum?.length"
     >
       <template #activator="{ props }">
-        <v-chip size="small" class="ml-1" v-bind="props" label variant="tonal" append-icon="mdi-information">
+        <v-chip size="small" class="ml-1" v-bind="props" label variant="flat" append-icon="mdi-information">
           Enum
         </v-chip>
       </template>
@@ -35,7 +35,7 @@ const props = defineProps({
       v-if="field.description"
     >
       <template #activator="{ props }">
-        <v-chip size="small" class="ml-1" v-bind="props" label variant="tonal" append-icon="mdi-information">
+        <v-chip size="small" class="ml-1" v-bind="props" label variant="flat" append-icon="mdi-information">
           Description
         </v-chip>
       </template>
