@@ -1371,6 +1371,7 @@ watch(modelValue, () => {
           :error-messages="state.fieldErrorMessage"
         />
         <v-select
+          v-if="(fieldTypes.length > 1 && props.fieldType === 'object') || props.forFunctions"
           v-model="state.fieldInsert.type"
           :disabled="state.isEditing"
           v-bind="props.bindings"
