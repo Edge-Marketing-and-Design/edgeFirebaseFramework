@@ -82,6 +82,10 @@ export const edgeRules = {
     }
     return true
   },
+  gptFunctionName: (value: string) => {
+    const pattern = /^[a-zA-Z0-9_-]{1,64}$/
+    return pattern.test(value) || 'The function name must be 1-64 characters and can only contain letters, numbers, underscores, and dashes.'
+  },
   endpoint: (value: string) => {
     const urlPattern = /^https?:\/\/(?!:\/\/)([a-zA-Z0-9]+\.)?[a-zA-Z0-9][a-zA-Z0-9-]+(\.[a-zA-Z]{2,6})?(:\d{1,5})?(\/[^\s]*)?$/i
     if (!urlPattern.test(value)) {
