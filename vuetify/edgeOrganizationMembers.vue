@@ -29,7 +29,6 @@ watch(users, async () => {
       sub-field-type="users"
       label="Users"
       parent-tracker-id="users"
-      helper="<p>Members</p>"
     />
   </div>
 </template>

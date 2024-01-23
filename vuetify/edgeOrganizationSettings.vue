@@ -112,7 +112,7 @@ watch(currentOrgData, async () => {
           persistent-hint
         >
           <template #prepend-inner>
-            <clipboard-button size="small" :text="edgeGlobal.edgeState.currentOrganization" />
+            <clipboard-button :text="edgeGlobal.edgeState.currentOrganization" />
           </template>
         </v-text-field>
         <v-snackbar v-model="state.showSnack" location="center" :color="state.snackColor" density="compact">
