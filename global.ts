@@ -62,8 +62,8 @@ export const dupObject = (obj: any): any => {
 export const currentOrganizationObject = computed(() => {
   const edgeFirebase: any = inject('edgeFirebase')
   if (edgeState.organizations.length > 0) {
-    if (edgeState.currentOrganization) {
-      return edgeFirebase.data[`organizations/${edgeState.currentOrganization}`]
+    if (edgeState.currentOrganization && edgeFirebase?.data[`organizations/${edgeState.currentOrganization}`]) {
+      return edgeFirebase?.data[`organizations/${edgeState.currentOrganization}`]
     }
   }
   return ''

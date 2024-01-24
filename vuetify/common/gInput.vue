@@ -799,7 +799,7 @@ watch(modelValue, () => {
         :disabled="props.disabled"
       >
         <template v-if="props.helper" #append>
-          <helper :helper="props.helper" />
+          <g-helper :helper="props.helper" />
         </template>
       </v-combobox>
       <v-select
@@ -814,7 +814,7 @@ watch(modelValue, () => {
         :disabled="props.disabled"
       >
         <template v-if="props.helper" #append>
-          <helper :helper="props.helper" />
+          <g-helper :helper="props.helper" />
         </template>
       </v-select>
     </template>
@@ -908,7 +908,7 @@ watch(modelValue, () => {
       :disabled="props.disabled"
     >
       <template v-if="props.helper" #append>
-        <helper :helper="props.helper" />
+        <g-helper :helper="props.helper" />
       </template>
     </v-select>
     <v-card v-if="props.fieldType === 'number'" flat color="transparent">
@@ -978,7 +978,7 @@ watch(modelValue, () => {
       @keydown="validateInput"
     >
       <template v-if="props.helper" #append-inner>
-        <helper :helper="props.helper" />
+        <g-helper :helper="props.helper" />
       </template>
     </v-text-field>
     <v-text-field
@@ -993,7 +993,7 @@ watch(modelValue, () => {
       :disabled="props.disabled"
     >
       <template v-if="props.helper" #append-inner>
-        <helper :helper="props.helper" />
+        <g-helper :helper="props.helper" />
       </template>
     </v-text-field>
     <v-checkbox
@@ -1015,7 +1015,7 @@ watch(modelValue, () => {
       :disabled="props.disabled"
     >
       <template v-if="props.helper" #append>
-        <helper :helper="props.helper" />
+        <g-helper :helper="props.helper" />
       </template>
     </v-select>
     <v-textarea
@@ -1028,7 +1028,7 @@ watch(modelValue, () => {
       v-bind="props.bindings"
     >
       <template v-if="props.helper" #append-inner>
-        <helper :helper="props.helper" />
+        <g-helper :helper="props.helper" />
       </template>
     </v-textarea>
     <template v-if="props.fieldType === 'object' || props.fieldType === 'array'">
@@ -1092,7 +1092,7 @@ watch(modelValue, () => {
               </template>
             </template>
           </v-btn>
-          <helper v-if="props.helper" :helper="props.helper" />
+          <g-helper v-if="props.helper" :helper="props.helper" />
         </v-toolbar>
         <v-card-text class="py-0 px-0">
           <draggable
@@ -1259,7 +1259,7 @@ watch(modelValue, () => {
             <v-toolbar-title>{{ props.label }}</v-toolbar-title>
             <v-spacer />
             <component :is="`form-subtypes-${props.subFieldType}`" v-model:items="modelValue" :pass-through-props="passThroughProps" />
-            <helper v-if="props.helper" :helper="props.helper" />
+            <g-helper v-if="props.helper" :helper="props.helper" />
           </v-toolbar>
           <v-list class="mt-0 pt-0" bg-color="transparent">
             <draggable

@@ -1,6 +1,6 @@
-export { default as helper } from './common/helper.vue'
 export { default as loggingIn } from './common/loggingIn.vue'
 export { default as GInput } from './common/gInput.vue'
+export { default as GHelper } from './common/gHelper.vue'
 export { default as GError } from './common/gError.vue'
 export { default as FormSubtypesUsers } from './common/formSubtypes/users.vue'
 export { default as FormSubtypesMyOrgs } from './common/formSubtypes/myOrgs.vue'

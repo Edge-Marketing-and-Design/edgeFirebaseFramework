@@ -159,7 +159,7 @@ const onSubmit = async (event) => {
         <v-chip size="small" color="primary">
           Registration Code: {{ props.item.docId }}
         </v-chip>
-        <clipboard-button :text="props.item.docId" size="small" />
+        <clipboard-button :text="props.item.docId" />
       </template>
     </v-list-item-subtitle>
     <template #append>

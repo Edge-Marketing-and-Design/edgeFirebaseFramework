@@ -57,7 +57,9 @@ const title = computed(() => {
           mdi-help-rhombus
         </v-icon>
       </v-toolbar>
-      <v-card-text class="px-8" v-html="props.helper" />
+      <v-card-text class="px-8">
+        <div v-html="props.helper" />
+      </v-card-text>
     </v-card>
   </v-menu>
 </template>
