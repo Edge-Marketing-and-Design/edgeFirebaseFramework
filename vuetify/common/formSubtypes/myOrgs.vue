@@ -102,7 +102,7 @@ const onSubmit = async (event) => {
 </script>
 
 <template>
-  <v-btn v-if="props.item === null" size="x-small" class="mr-2" variant="tonal" @click="addItem()">
+  <v-btn v-if="props.item === null && props.passThroughProps" size="x-small" class="mr-2" variant="tonal" @click="addItem()">
     Add Organization
   </v-btn>
   <v-btn v-if="props.item === null" size="x-small" variant="tonal" @click="joinOrg()">

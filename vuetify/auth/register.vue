@@ -102,7 +102,7 @@ const onSubmit = async (event) => {
     // state.phoneConfirmDialog = true
     }
     else {
-      if (state.showRegistrationCode) {
+      if (state.showRegistrationCode || !props.registrationCode) {
         register.registrationCode = state.registrationCode
       }
       console.log('registering')
@@ -269,8 +269,9 @@ function validateInput(event) {
           hint="Once submitted, this cannot be changed. Only use letters, numbers, and underscores."
           @keypress="validateInput"
         />
+
         <v-checkbox
-          v-if="!props.singleOrganization"
+          v-if="!props.singleOrganization && props.registrationCode"
           v-model="state.showRegistrationCode"
           class="my-0"
           hide-details
@@ -281,7 +282,7 @@ function validateInput(event) {
         </v-checkbox>
         <template v-if="!props.singleOrganization">
           <v-text-field
-            v-if="state.showRegistrationCode"
+            v-if="state.showRegistrationCode || !props.registrationCode"
             v-model="state.registrationCode"
             :rules="[edgeGlobal.edgeRules.required]"
             label="Registration Code"

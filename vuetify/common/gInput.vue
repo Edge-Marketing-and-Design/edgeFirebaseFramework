@@ -702,6 +702,17 @@ const validateInput = (event) => {
     event.preventDefault()
   }
 }
+watch(() => props.modelValue, (newValue) => {
+  if (state.afterMount) {
+    if (props.fieldType === 'objectList') {
+    // Only update if the objects are different
+      if (JSON.stringify(modelValue.value) !== JSON.stringify(newValue)) {
+        modelValue.value = edgeGlobal.dupObject(newValue)
+      }
+    }
+  }
+  // console.log('order changed')
+})
 
 watch(() => state.order, () => {
   if (props.fieldType === 'object') {
@@ -829,7 +840,7 @@ watch(modelValue, () => {
       :disabled="props.disabled"
       class="mt-1"
     >
-      <v-card flat width="100%" color="transparent">
+      <v-card flat width="100%" variant="tonal" class="px-3">
         <v-card-title v-if="state.fieldInsert.type !== 'string'" class="headline">
           {{ props.label }}
         </v-card-title>
